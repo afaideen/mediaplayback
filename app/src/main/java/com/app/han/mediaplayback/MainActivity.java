@@ -71,61 +71,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         seek_bar.setOnSeekBarChangeListener(this);
         player.setOnCompletionListener(this); // Important
 
-  /*      String path = "android.resource://" + getPackageName() + "/" + R.raw.sample;
-      *//*  Uri url = Uri.parse(path);
-        File file = new File(url.toString());
-        path = file.getPath();*//*
 
-        try {
-            path = new File(new URI(path).getPath()).getCanonicalPath();
-
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        Cursor c = this.getContentResolver().query(
-                MediaStore.Audio.Media.EXTERNAL_CONTENT_URI,
-                new String[] {
-                        MediaStore.Audio.Media.ALBUM,
-                        MediaStore.Audio.Media.ARTIST,
-                        MediaStore.Audio.Media.TRACK,
-                        MediaStore.Audio.Media.TITLE,
-                        MediaStore.Audio.Media.DISPLAY_NAME,
-                        MediaStore.Audio.Media.DATA,
-                        MediaStore.Audio.Media.DURATION,
-                        MediaStore.Audio.Media.YEAR
-                },
-                MediaStore.Audio.Media.DATA + " = ?",
-                new String[] {
-                        path
-                },
-                "");
-
-        if (null == c) {
-            // ERROR
-        }
-
-        while (c.moveToNext()) {
-            c.getString(c.getColumnIndex(MediaStore.Audio.Media.ALBUM));
-            c.getString(c.getColumnIndex(MediaStore.Audio.Media.ARTIST));
-            c.getString(c.getColumnIndex(MediaStore.Audio.Media.TRACK));
-            c.getString(c.getColumnIndex(MediaStore.Audio.Media.TITLE));
-            c.getString(c.getColumnIndex(MediaStore.Audio.Media.DISPLAY_NAME));
-            c.getString(c.getColumnIndex(MediaStore.Audio.Media.DATA));
-            c.getString(c.getColumnIndex(MediaStore.Audio.Media.DURATION));
-            c.getString(c.getColumnIndex(MediaStore.Audio.Media.YEAR));
-        }*/
     }
 
-/*    Runnable run = new Runnable() {
-        @Override public void run() {
-            seekUpdation();
-        }
-    };
 
-    public void seekUpdation() {
-        seek_bar.setProgress(player.getCurrentPosition());
-        seekHandler.postDelayed(run, 1000);
-    }*/
 
 
     @Override
@@ -218,7 +167,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             songCurrentDurationLabel.setText(""+milliSecondsToTimer(currentDuration));
 
             // Updating progress bar
-            int progress = (int)(getProgressPercentage(currentDuration, totalDuration));
+            int progress = getProgressPercentage(currentDuration, totalDuration);
             //Log.d("Progress", ""+progress);
             seek_bar.setProgress(progress);
 
@@ -277,7 +226,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     public int progressToTimer(int progress, int totalDuration) {
         int currentDuration = 0;
-        totalDuration = (int) (totalDuration / 1000);
+        totalDuration = totalDuration / 1000;
         currentDuration = (int) ((((double)progress) / 100) * totalDuration);
 
         // return current duration in milliseconds
