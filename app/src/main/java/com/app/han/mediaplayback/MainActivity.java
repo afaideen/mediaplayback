@@ -19,13 +19,18 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Random;
+
+import static android.media.ToneGenerator.MAX_VOLUME;
 
 //ref http://mrbool.com/how-to-play-audio-files-in-android-with-a-seekbar-feature-and-mediaplayer-class/28243
 // download sample.mp3 at http://sharelagu.info/site_view.xhtml?cmid=13248785&get-artist=Richard%20Marx&get-title=Right%20Here%20Waiting%20For%20You
 //check project AndroidBuildingMusicPlayer1
 public class MainActivity extends AppCompatActivity implements View.OnClickListener, SeekBar.OnSeekBarChangeListener, MediaPlayer.OnCompletionListener {
 
-    SeekBar seek_bar;
+    SeekBar volume,seek_bar;
     ImageButton btnPlay,btnRepeat,btnShuffle;
 //    Button pause_button;
     MediaPlayer player;
@@ -34,6 +39,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private MediaPlayer.TrackInfo[] trackInfo;
     private boolean isRepeat = false;
     private boolean isShuffle = false;
+    private ArrayList<HashMap<String, String>> songsList = new ArrayList<HashMap<String, String>>();
+    private int soundVolume = 30;
+    private float volumeStrength;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -44,15 +52,14 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         } catch (URISyntaxException e) {
             e.printStackTrace();
         }
-//        seekUpdation();
     }
 
     public void getInit() throws URISyntaxException {
-        seek_bar = (SeekBar) findViewById(R.id.songProgressBar);//(R.id.seek_bar);
+        seek_bar = (SeekBar) findViewById(R.id.songProgressBar);
+        volume = (SeekBar) findViewById(R.id.volume);
         btnPlay = (ImageButton) findViewById(R.id.btnPlay);
         btnRepeat = (ImageButton) findViewById(R.id.btnRepeat);
         btnShuffle = (ImageButton) findViewById(R.id.btnShuffle);
-//        pause_button = (Button) findViewById(R.id.pause_button);
         text_shown = (TextView) findViewById(R.id.text_shown);
         songCurrentDurationLabel = (TextView) findViewById(R.id.songCurrentDurationLabel);
         songTotalDurationLabel = (TextView) findViewById(R.id.songTotalDurationLabel);
@@ -60,18 +67,36 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         btnPlay.setOnClickListener(this);
         btnRepeat.setOnClickListener(this);
         btnShuffle.setOnClickListener(this);
-//        pause_button.setOnClickListener(this);
         player = MediaPlayer.create(this, R.raw.sample);
 
-//        seek_bar.setMax(player.getDuration());
-        // set Progress bar values
         seek_bar.setProgress(0);
         seek_bar.setMax(100);
+        volume.setMax(100);
+        volume.setProgress(soundVolume);
+        volume.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progress, boolean fromUser) {
+                soundVolume = volume.getProgress();
+                volumeStrength = (float) (1 - (Math.log(MAX_VOLUME - soundVolume) / Math.log(MAX_VOLUME)));
+                player.setVolume(volumeStrength, volumeStrength);
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+
+            }
+        });
 
         seek_bar.setOnSeekBarChangeListener(this);
         player.setOnCompletionListener(this); // Important
 
-
+        volumeStrength = (float) (1 - (Math.log(MAX_VOLUME - soundVolume) / Math.log(MAX_VOLUME)));
+        player.setVolume(volumeStrength, volumeStrength);
     }
 
 
@@ -116,9 +141,21 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                     btnShuffle.setImageResource(R.drawable.btn_shuffle);
                 }
                 break;
-//            case R.id.pause_button:
-//                player.pause();
-//                text_shown.setText("Paused...");
+            case R.id.btnShuffle:
+                if(isShuffle){
+                    isShuffle = false;
+                    Toast.makeText(getApplicationContext(), "Shuffle is OFF", Toast.LENGTH_SHORT).show();
+                    btnShuffle.setImageResource(R.drawable.btn_shuffle);
+                }else{
+                    // make repeat to true
+                    isShuffle= true;
+                    Toast.makeText(getApplicationContext(), "Shuffle is ON", Toast.LENGTH_SHORT).show();
+                    // make shuffle to false
+                    isRepeat = false;
+                    btnShuffle.setImageResource(R.drawable.btn_shuffle_focused);
+                    btnRepeat.setImageResource(R.drawable.btn_repeat);
+                }
+                break;
         }
 
     }
@@ -136,12 +173,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     public void onStopTrackingTouch(SeekBar seekBar) {
         seekHandler.removeCallbacks(mUpdateTimeTask);
         int totalDuration = player.getDuration();
-        int currentPosition = progressToTimer(seekBar.getProgress(), totalDuration);
+        int currentPosition = utils.progressToTimer(seekBar.getProgress(), totalDuration);
 
         // forward or backward to certain seconds
         player.seekTo(currentPosition);
 
-//        seekUpdation();
         updateProgressBar();
     }
 
@@ -153,6 +189,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     public void updateProgressBar() {
         seekHandler.postDelayed(mUpdateTimeTask, 100);
     }
+
+    private Utilities utils = new Utilities();
     /**
      * Background Runnable thread
      * */
@@ -162,12 +200,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             long currentDuration = player.getCurrentPosition();
 
             // Displaying Total Duration time
-            songTotalDurationLabel.setText(""+milliSecondsToTimer(totalDuration));
+            songTotalDurationLabel.setText("" + utils.milliSecondsToTimer(totalDuration));
             // Displaying time completed playing
-            songCurrentDurationLabel.setText(""+milliSecondsToTimer(currentDuration));
+            songCurrentDurationLabel.setText("" + utils.milliSecondsToTimer(currentDuration));
 
             // Updating progress bar
-            int progress = getProgressPercentage(currentDuration, totalDuration);
+            int progress = utils.getProgressPercentage(currentDuration, totalDuration);
             //Log.d("Progress", ""+progress);
             seek_bar.setProgress(progress);
 
@@ -176,62 +214,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         }
     };
 
-    /**
-     * Function to convert milliseconds time to
-     * Timer Format
-     * Hours:Minutes:Seconds
-     * */
-    public String milliSecondsToTimer(long milliseconds){
-        String finalTimerString = "";
-        String secondsString = "";
 
-        // Convert total duration into time
-        int hours = (int)( milliseconds / (1000*60*60));
-        int minutes = (int)(milliseconds % (1000*60*60)) / (1000*60);
-        int seconds = (int) ((milliseconds % (1000*60*60)) % (1000*60) / 1000);
-        // Add hours if there
-        if(hours > 0){
-            finalTimerString = hours + ":";
-        }
-
-        // Prepending 0 to seconds if it is one digit
-        if(seconds < 10){
-            secondsString = "0" + seconds;
-        }else{
-            secondsString = "" + seconds;}
-
-        finalTimerString = finalTimerString + minutes + ":" + secondsString;
-
-        // return timer string
-        return finalTimerString;
-    }
-
-    /**
-     * Function to get Progress percentage
-     * @param currentDuration
-     * @param totalDuration
-     * */
-    public int getProgressPercentage(long currentDuration, long totalDuration){
-        Double percentage = (double) 0;
-
-        long currentSeconds = (int) (currentDuration / 1000);
-        long totalSeconds = (int) (totalDuration / 1000);
-
-        // calculating percentage
-        percentage =(((double)currentSeconds)/totalSeconds)*100;
-
-        // return percentage
-        return percentage.intValue();
-    }
-
-    public int progressToTimer(int progress, int totalDuration) {
-        int currentDuration = 0;
-        totalDuration = totalDuration / 1000;
-        currentDuration = (int) ((((double)progress) / 100) * totalDuration);
-
-        // return current duration in milliseconds
-        return currentDuration * 1000;
-    }
 
     @Override
     public void onCompletion(MediaPlayer mediaPlayer) {
@@ -246,14 +229,21 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             // repeat is on play same song again
             playSong();
         }
+        else if(isShuffle){
+            // shuffle is on - play a random song
+            Random rand = new Random();
+            int currentSongIndex = rand.nextInt((songsList.size() - 1) - 0 + 1) + 0;
+//            playSong(currentSongIndex);
+
+        }
     }
 
     private void playSong() {
+
         player.start();
         // Changing button image to pause button
         btnPlay.setImageResource(R.drawable.btn_pause);
         text_shown.setText("Playing...");
-
         // Updating progress bar
         updateProgressBar();
 

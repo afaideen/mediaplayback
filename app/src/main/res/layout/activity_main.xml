@@ -11,10 +11,27 @@
         android:layout_height="wrap_content"
         android:layout_centerHorizontal="true"
         android:layout_marginTop="120px"
-        android:text="" android:textSize="42px" />
+        android:textColor="#04cbde"
+        android:text="What song?"
+        android:textSize="42px" />
+
+    <SeekBar
+        android:id="@+id/volume"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="20dp"
+        android:progressDrawable="@drawable/seekbar_style"
+        android:thumb="@drawable/custom_thumb"
+
+        android:layout_above="@+id/option"
+        android:layout_marginLeft="20dp"
+        android:paddingLeft="20dp"
+        android:paddingRight="20dp"
+        android:layout_centerHorizontal="true" />
 
     <!-- Repeat / Shuffle buttons -->
     <LinearLayout
+        android:id="@+id/option"
         android:layout_width="fill_parent"
         android:layout_height="wrap_content"
         android:layout_above="@+id/timerDisplay"
