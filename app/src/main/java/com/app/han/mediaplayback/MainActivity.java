@@ -1,26 +1,21 @@
 package com.app.han.mediaplayback;
 
-import android.database.Cursor;
+import android.content.Intent;
 import android.media.MediaPlayer;
 import android.net.Uri;
+import android.os.Environment;
 import android.os.Handler;
-import android.provider.MediaStore;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.view.View;
-import android.widget.Button;
 import android.widget.ImageButton;
 import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Random;
 
 import static android.media.ToneGenerator.MAX_VOLUME;
@@ -31,17 +26,17 @@ import static android.media.ToneGenerator.MAX_VOLUME;
 public class MainActivity extends AppCompatActivity implements View.OnClickListener, SeekBar.OnSeekBarChangeListener, MediaPlayer.OnCompletionListener {
 
     SeekBar volume,seek_bar;
-    ImageButton btnPlay,btnRepeat,btnShuffle;
+    ImageButton btnPlaylist,btnPlay,btnRepeat,btnShuffle;
 //    Button pause_button;
     MediaPlayer player;
-    TextView text_shown,songCurrentDurationLabel,songTotalDurationLabel;
+    TextView songTitle, text_shown,songCurrentDurationLabel,songTotalDurationLabel;
     Handler seekHandler = new Handler();
-    private MediaPlayer.TrackInfo[] trackInfo;
     private boolean isRepeat = false;
     private boolean isShuffle = false;
-    private ArrayList<HashMap<String, String>> songsList = new ArrayList<HashMap<String, String>>();
+    private static ArrayList<File> listSongs = new ArrayList<>();
     private int soundVolume = 30;
     private float volumeStrength;
+    private String fileName;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -52,22 +47,70 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         } catch (URISyntaxException e) {
             e.printStackTrace();
         }
+        // Getting all songs list
+        listSongs = findSongs(Environment.getExternalStorageDirectory());
+    }
+
+    private ArrayList<File> findSongs(File root) {
+        ArrayList<File> listFile = new ArrayList<>();
+        File[] files = root.listFiles();
+        for(File file : files){
+            if(file.isDirectory() && !file.isHidden()){
+                listFile.addAll(findSongs(file));
+            }else {
+                if(file.getName().endsWith(".mp3") ){//|| file.getName().endsWith(".wav")){
+                    listFile.add(file);
+                }
+            }
+
+        }
+        return listFile;
+
     }
 
     public void getInit() throws URISyntaxException {
         seek_bar = (SeekBar) findViewById(R.id.songProgressBar);
         volume = (SeekBar) findViewById(R.id.volume);
         btnPlay = (ImageButton) findViewById(R.id.btnPlay);
+        btnPlaylist = (ImageButton) findViewById(R.id.btnPlaylist);
+        /**
+         * Button Click event for Play list click event
+         * Launches list activity which displays list of songs
+         * */
+        btnPlaylist.setOnClickListener(new View.OnClickListener() {
+
+            @Override
+            public void onClick(View arg0) {
+                Intent i = new Intent(getApplicationContext(), PlayListActivity.class);
+                i.putExtra("ListSongs", listSongs);
+                startActivityForResult(i, 100);
+            }
+        });
         btnRepeat = (ImageButton) findViewById(R.id.btnRepeat);
         btnShuffle = (ImageButton) findViewById(R.id.btnShuffle);
         text_shown = (TextView) findViewById(R.id.text_shown);
+        songTitle = (TextView) findViewById(R.id.songTitle);
         songCurrentDurationLabel = (TextView) findViewById(R.id.songCurrentDurationLabel);
         songTotalDurationLabel = (TextView) findViewById(R.id.songTotalDurationLabel);
 
         btnPlay.setOnClickListener(this);
         btnRepeat.setOnClickListener(this);
         btnShuffle.setOnClickListener(this);
-        player = MediaPlayer.create(this, R.raw.sample);
+
+
+        Intent intent = getIntent();
+        Bundle b = intent.getExtras();
+        if(b != null) {
+            int position = (int) b.get("pos");
+            Uri uri = Uri.parse(listSongs.get(position).toString());
+            player = MediaPlayer.create(this, uri);
+            fileName = listSongs.get(position).getName().replace(".mp3", "");
+        }
+        else {
+            player = MediaPlayer.create(this, R.raw.sample);
+            fileName = "sample";
+        }
+        songTitle.setText(fileName);
 
         seek_bar.setProgress(0);
         seek_bar.setMax(100);
@@ -99,7 +142,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         player.setVolume(volumeStrength, volumeStrength);
     }
 
-
+    @Override
+    public void onDestroy(){
+        super.onDestroy();
+        player.release();
+    }
 
 
     @Override
@@ -232,14 +279,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         else if(isShuffle){
             // shuffle is on - play a random song
             Random rand = new Random();
-            int currentSongIndex = rand.nextInt((songsList.size() - 1) - 0 + 1) + 0;
+            int currentSongIndex = rand.nextInt((listSongs.size() - 1) - 0 + 1) + 0;
 //            playSong(currentSongIndex);
 
         }
     }
 
     private void playSong() {
-
         player.start();
         // Changing button image to pause button
         btnPlay.setImageResource(R.drawable.btn_pause);
